@@ -47,17 +47,15 @@ namespace NINA.Sequencer.SequenceItem.Utility {
             CopyMetaData(cloneMe);
         }
 
-        private static Task imagePrepareTask = null;
-
         private IImageSaveMediator imageSaveMediator;
         private IImagingMediator imagingMediator;
 
         private static List<ImagePattern> customPatterns = new List<ImagePattern> {
-            new(Loc.Instance["LblCustomText1Key"], Loc.Instance["LblCustomText1"]),
-            new(Loc.Instance["LblCustomText2Key"], Loc.Instance["LblCustomText2"]),
-            new(Loc.Instance["LblCustomText3Key"], Loc.Instance["LblCustomText3"]),
-            new(Loc.Instance["LblCustomText4Key"], Loc.Instance["LblCustomText4"]),
-            new(Loc.Instance["LblCustomText5Key"], Loc.Instance["LblCustomText5"]),
+            new(Loc.Instance["LblCustomText1Key"], Loc.Instance["LblCustomText1"], Loc.Instance["LblCustomTexts"]),
+            new(Loc.Instance["LblCustomText2Key"], Loc.Instance["LblCustomText2"], Loc.Instance["LblCustomTexts"]),
+            new(Loc.Instance["LblCustomText3Key"], Loc.Instance["LblCustomText3"], Loc.Instance["LblCustomTexts"]),
+            new(Loc.Instance["LblCustomText4Key"], Loc.Instance["LblCustomText4"], Loc.Instance["LblCustomTexts"]),
+            new(Loc.Instance["LblCustomText5Key"], Loc.Instance["LblCustomText5"], Loc.Instance["LblCustomTexts"]),
         };
 
         public static List<ImagePattern> CustomPatterns { get { return customPatterns; } }
@@ -79,12 +77,11 @@ namespace NINA.Sequencer.SequenceItem.Utility {
             base.Initialize();
         }
 
+        private Task waitForPrepTask = null;
         private async Task ImageSaveMediator_BeforeImageSaved(object sender, BeforeImageSavedEventArgs e) {
             // Pick up the imagePrepare task so the we can wait for it to finish before we change the custom patterns
 
-            imagePrepareTask = e.ImagePrepareTask;
-            await e.ImagePrepareTask;
-            imagePrepareTask = null;
+            await WaitForPrepareTask(e.ImagePrepareTask);
         }
 
         private Task ImageSaveMediator_BeforeFinalizeImageSaved(object sender, BeforeFinalizeImageSavedEventArgs e) {
@@ -105,14 +102,11 @@ namespace NINA.Sequencer.SequenceItem.Utility {
             }
         }
 
-        public override async Task Execute(IProgress<ApplicationStatus> progress, CancellationToken token) {
-
+        private async Task execTask() {
             // give any events from preceeding image captures chance to fire
             await Task.Delay(500);
 
-            if ((imagePrepareTask != null) && (!imagePrepareTask.IsCompleted) && (!imagePrepareTask.IsCanceled)) {
-                await imagePrepareTask;
-                imagePrepareTask = null;
+            if (waitingForImagePrep) {
                 executePending = true;
                 return;
             }
@@ -120,6 +114,30 @@ namespace NINA.Sequencer.SequenceItem.Utility {
             SetText();
 
             return;
+        }
+        public override Task Execute(IProgress<ApplicationStatus> progress, CancellationToken token) {
+            _ = execTask();
+            return Task.CompletedTask;
+        }
+
+        private bool waitingForImagePrep = false;
+        private async Task WaitForPrepareTask(Task imagePrepareTask) {
+            if (imagePrepareTask == null) {
+                return;
+            }
+            if (imagePrepareTask.IsCompleted) {
+                return;
+            }
+            if (imagePrepareTask.IsCanceled) {
+                return;
+            }
+
+            waitingForImagePrep = true;
+            await imagePrepareTask;
+            waitingForImagePrep = false;
+            if (executePending) {
+                SetText();
+            }
         }
 
         private void SetText() {
@@ -133,9 +151,8 @@ namespace NINA.Sequencer.SequenceItem.Utility {
             await Task.Delay(750);
 
             // BeforeImageSaved has been called so wait for the image to be prepared
-            if ((imagePrepareTask != null) && (!imagePrepareTask.IsCompleted) && (!imagePrepareTask.IsCanceled)) {
-                await imagePrepareTask;
-                imagePrepareTask = null;
+            if (waitingForImagePrep) {
+                await waitForPrepTask;
             }
 
             // last chance
@@ -144,9 +161,9 @@ namespace NINA.Sequencer.SequenceItem.Utility {
 
             // wait 10 secs before removing the hooks that we need for any outstanding file save operations
             await Task.Delay(10000);
-                imageSaveMediator.BeforeFinalizeImageSaved -= ImageSaveMediator_BeforeFinalizeImageSaved;
-                imageSaveMediator.ImageSaved -= ImageSaveMediator_ImageSaved;
-                imageSaveMediator.BeforeImageSaved -= ImageSaveMediator_BeforeImageSaved;
+            imageSaveMediator.BeforeFinalizeImageSaved -= ImageSaveMediator_BeforeFinalizeImageSaved;
+            imageSaveMediator.ImageSaved -= ImageSaveMediator_ImageSaved;
+            imageSaveMediator.BeforeImageSaved -= ImageSaveMediator_BeforeImageSaved;
 
             return;
         }

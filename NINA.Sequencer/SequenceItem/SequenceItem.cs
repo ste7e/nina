@@ -14,18 +14,19 @@
 
 using Newtonsoft.Json;
 using NINA.Core.Enum;
+using NINA.Core.Locale;
 using NINA.Core.Model;
-using NINA.Sequencer.Container;
-using NINA.Sequencer.Validations;
 using NINA.Core.Utility;
+using NINA.Core.Utility.Notification;
+using NINA.Sequencer.Container;
+using NINA.Sequencer.SequenceItem.Connect;
+using NINA.Sequencer.Utility;
+using NINA.Sequencer.Validations;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
-using NINA.Sequencer.Utility;
-using NINA.Core.Locale;
-using NINA.Core.Utility.Notification;
 
 namespace NINA.Sequencer.SequenceItem {
 
@@ -59,13 +60,13 @@ namespace NINA.Sequencer.SequenceItem {
         public ICommand MoveDownCommand => new GalaSoft.MvvmLight.Command.RelayCommand(MoveDown);
         public ICommand MoveUpCommand => new GalaSoft.MvvmLight.Command.RelayCommand(MoveUp);
         public ICommand DisableEnableCommand => new GalaSoft.MvvmLight.Command.RelayCommand(() => {
-            if(Status != SequenceEntityStatus.DISABLED) {
+            if (Status != SequenceEntityStatus.DISABLED) {
                 Status = SequenceEntityStatus.DISABLED;
                 ShowMenu = false;
             } else {
                 Status = SequenceEntityStatus.CREATED;
             }
-            
+
         });
 
         public string Name {
@@ -129,6 +130,9 @@ namespace NINA.Sequencer.SequenceItem {
 
         public virtual void AfterParentChanged() {
             //Hook for behavior when parent changes
+            if (GetType().GetCustomAttributes(typeof(ConnectorAttribute), true).Length > 0) {
+                ItemUtility.GetRootContainer(Parent)?.ResetConnectorsList();
+            }
         }
 
         public void AttachNewParent(ISequenceContainer newParent) {
@@ -140,9 +144,11 @@ namespace NINA.Sequencer.SequenceItem {
         public abstract object Clone();
 
         public void Detach() {
+            ISequenceContainer oldParent = Parent;
             if (!(this is ISimpleDSOContainer) || !AskHasChanged(Name)) {
                 Parent?.Remove(this);
             }
+            ItemUtility.GetRootContainer(oldParent)?.ResetConnectorsList();
         }
 
         public abstract Task Execute(IProgress<ApplicationStatus> progress, CancellationToken token);
@@ -160,7 +166,7 @@ namespace NINA.Sequencer.SequenceItem {
         }
 
         public virtual void ResetProgress() {
-            if(this.Status != SequenceEntityStatus.DISABLED) { 
+            if (this.Status != SequenceEntityStatus.DISABLED) {
                 this.Status = SequenceEntityStatus.CREATED;
             }
         }
@@ -223,7 +229,7 @@ namespace NINA.Sequencer.SequenceItem {
                             using var checkTokenSource = new CancellationTokenSource();
                             var checkTimeout = TimeSpan.FromMinutes(2);
                             try {
-                                if(this is ISequenceContainer) {
+                                if (this is ISequenceContainer) {
                                     await this.Execute(progress, localCts.Token);
                                 } else {
                                     var localToken = localCts.Token;
@@ -263,7 +269,7 @@ namespace NINA.Sequencer.SequenceItem {
                                 Logger.Error($"{this} - ", ex);
                                 success = false;
                                 root?.RaiseFailureEvent(this, ex);
-                            } finally { 
+                            } finally {
                                 try {
                                     checkTokenSource.Cancel();
                                 } catch { }
@@ -275,8 +281,8 @@ namespace NINA.Sequencer.SequenceItem {
                         }
                     } catch (SequenceEntityFailedException ex) {
                         Logger.Error($"Failed: {this} - " + ex.Message);
-                        Status = SequenceEntityStatus.FAILED;                        
-                        root?.RaiseFailureEvent(this, ex);                        
+                        Status = SequenceEntityStatus.FAILED;
+                        root?.RaiseFailureEvent(this, ex);
                     } catch (SequenceEntityFailedValidationException ex) {
                         Logger.Error($"Failed validation: {this} - " + ex.Message);
                         Status = SequenceEntityStatus.FAILED;
@@ -323,6 +329,18 @@ namespace NINA.Sequencer.SequenceItem {
                     localCts?.Cancel();
                 } catch { }
             }
+        }
+
+        private ISequenceRootContainer cachedRootContainer = null;
+        public bool HasConnector(string deviceName) {
+            if (cachedRootContainer == null) {
+                cachedRootContainer = ItemUtility.GetRootContainer(Parent);
+            }
+            ISequenceRootContainer root = cachedRootContainer;
+            if (root == null)
+                return false;
+
+            return root.DevicesConnectedBySequenceItem.Contains("*") || root.DevicesConnectedBySequenceItem.Contains(deviceName);
         }
 
         public virtual void Initialize() {

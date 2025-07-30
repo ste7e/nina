@@ -71,7 +71,7 @@ namespace NINA.Sequencer.SequenceItem.Dome {
 
         public bool Validate() {
             var i = new List<string>();
-            if (!domeMediator.GetInfo().Connected) {
+            if ((!domeMediator.GetInfo().Connected) && (!HasConnector(Loc.Instance["LblDome"]))) {
                 i.Add(Loc.Instance["LblDomeNotConnected"]);
             }
             Issues = i;

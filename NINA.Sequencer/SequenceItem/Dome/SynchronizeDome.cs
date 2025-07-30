@@ -75,10 +75,10 @@ namespace NINA.Sequencer.SequenceItem.Dome {
 
         public bool Validate() {
             var i = new List<string>();
-            if (!domeMediator.GetInfo().Connected) {
+            if ((!domeMediator.GetInfo().Connected) && (!HasConnector(Loc.Instance["LblDome"]))) {
                 i.Add(Loc.Instance["LblDomeNotConnected"]);
             }
-            if (!telescopeMediator.GetInfo().Connected) {
+            if ((!telescopeMediator.GetInfo().Connected) && (!HasConnector(Loc.Instance["LblTelescope"]))) {
                 i.Add(Loc.Instance["LblTelescopeNotConnected"]);
             }
             Issues = i;

@@ -35,5 +35,9 @@ namespace NINA.Sequencer.Container {
 
         Task RaiseFailureEvent(ISequenceEntity sender, Exception ex);
         event Func<object, SequenceEntityFailureEventArgs, Task> FailureEvent;
+
+        List<string> DevicesConnectedBySequenceItem { get; }
+
+        void ResetConnectorsList();
     }
 }

@@ -4,6 +4,7 @@ using NINA.Core.Utility;
 using NINA.Equipment.Equipment;
 using NINA.Equipment.Interfaces.Mediator;
 using NINA.Profile.Interfaces;
+using NINA.Sequencer.Utility;
 using NINA.Sequencer.Validations;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace NINA.Sequencer.SequenceItem.Connect {
     [ExportMetadata("Category", "Lbl_SequenceCategory_Connect")]
     [Export(typeof(ISequenceItem))]
     [JsonObject(MemberSerialization.OptIn)]
+    [Connector]
     public class ConnectEquipment : SequenceItem, IValidatable {
         private IProfileService profileService;
         private ICameraMediator cameraMediator;
@@ -84,6 +86,8 @@ namespace NINA.Sequencer.SequenceItem.Connect {
             set {
                 selectedDevice = value;
                 Validate();
+                if (Parent != null)
+                    ItemUtility.GetRootContainer(Parent)?.ResetConnectorsList();
                 RaisePropertyChanged();
             }
         }

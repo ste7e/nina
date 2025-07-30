@@ -112,7 +112,7 @@ namespace NINA.Sequencer.SequenceItem.FilterWheel {
 
         public bool Validate() {
             var i = new List<string>();
-            if (filter != null && !filterWheelMediator.GetInfo().Connected) {
+            if (filter != null && (!filterWheelMediator.GetInfo().Connected) && (!HasConnector(Loc.Instance["LblFilterWheel"]))) {
                 i.Add(Loc.Instance["LblFilterWheelNotConnected"]);
             }
             Issues = i;

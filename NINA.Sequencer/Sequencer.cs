@@ -69,6 +69,7 @@ namespace NINA.Sequencer {
                 mainContainer = value;
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(Items));
+                mainContainer.ResetConnectorsList();
             }
         }
 

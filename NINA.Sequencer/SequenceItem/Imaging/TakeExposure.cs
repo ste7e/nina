@@ -40,6 +40,7 @@ using NINA.WPF.Base.Interfaces.ViewModel;
 using NINA.Sequencer.Interfaces;
 using NINA.Image.Interfaces;
 using NINA.Sequencer.Utility;
+using NINA.Sequencer.SequenceItem.Connect;
 
 namespace NINA.Sequencer.SequenceItem.Imaging {
 
@@ -264,7 +265,7 @@ namespace NINA.Sequencer.SequenceItem.Imaging {
         public bool Validate() {
             var i = new List<string>();
             CameraInfo = this.cameraMediator.GetInfo();
-            if (!CameraInfo.Connected) {
+            if ((!CameraInfo.Connected) && (!HasConnector(Loc.Instance["LblCamera"]))) {
                 i.Add(Loc.Instance["LblCameraNotConnected"]);
             } else {
                 if (CameraInfo.CanSetGain && Gain > -1 && (Gain < CameraInfo.GainMin || Gain > CameraInfo.GainMax)) {

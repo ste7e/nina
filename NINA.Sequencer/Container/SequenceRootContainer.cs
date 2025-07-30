@@ -13,11 +13,16 @@
 #endregion "copyright"
 
 using Newtonsoft.Json;
+using NINA.Core.Locale;
 using NINA.Core.Model;
+using NINA.Core.MyMessageBox;
+using NINA.Core.Utility;
+using NINA.Core.Utility.Extensions;
 using NINA.Sequencer.Container.ExecutionStrategy;
 using NINA.Sequencer.SequenceItem;
+using NINA.Sequencer.SequenceItem.Connect;
 using NINA.Sequencer.Trigger;
-using NINA.Core.Utility;
+using NINA.Sequencer.Utility;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
@@ -27,10 +32,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using NINA.Core.MyMessageBox;
-using NINA.Core.Locale;
-using NINA.Sequencer.Utility;
-using NINA.Core.Utility.Extensions;
 
 namespace NINA.Sequencer.Container {
 
@@ -106,6 +107,31 @@ namespace NINA.Sequencer.Container {
         public IReadOnlyCollection<ISequenceItem> GetCurrentRunningItems() {
             lock (runningItemsLock) {
                 return runningItems.ToList().AsReadOnly();
+            }
+        }
+
+        private List<string> devicesConnectedBySequenceItem = null;
+        public List<string> DevicesConnectedBySequenceItem { get { if (devicesConnectedBySequenceItem == null) FindConnectors(); return devicesConnectedBySequenceItem; } }
+
+        public void ResetConnectorsList() {
+            devicesConnectedBySequenceItem = null;
+        }
+        private void FindConnectors() {
+            devicesConnectedBySequenceItem = new();
+            FindConnectors(this);
+        }
+        private void FindConnectors(ISequenceContainer container) {
+            foreach (SequenceItem.SequenceItem item in container.Items) {
+                if (item is ConnectAllEquipment) {
+                    devicesConnectedBySequenceItem.Add("*");
+                    // might as well stop now as we've found a connect all
+                    return;
+                }
+                if (item is ConnectEquipment conn) {
+                    devicesConnectedBySequenceItem.Add(conn.SelectedDevice);
+                }
+                if (item is SequenceContainer cont)
+                    FindConnectors(cont);
             }
         }
 

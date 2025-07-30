@@ -13,15 +13,16 @@
 #endregion "copyright"
 
 using Newtonsoft.Json;
+using NINA.Core.Locale;
 using NINA.Core.Model;
-using NINA.Sequencer.Validations;
 using NINA.Equipment.Interfaces.Mediator;
+using NINA.Sequencer.Validations;
+using NINA.WPF.Base.Mediator;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Threading;
 using System.Threading.Tasks;
-using NINA.Core.Locale;
 
 namespace NINA.Sequencer.SequenceItem.Dome {
 
@@ -65,7 +66,7 @@ namespace NINA.Sequencer.SequenceItem.Dome {
 
         public bool Validate() {
             var i = new List<string>();
-            if (!domeMediator.GetInfo().Connected) {
+            if ((!domeMediator.GetInfo().Connected) && (!HasConnector(Loc.Instance["LblDome"]))) {
                 i.Add(Loc.Instance["LblDomeNotConnected"]);
             }
             if (!domeMediator.GetInfo().CanFindHome) {

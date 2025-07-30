@@ -20,6 +20,7 @@ namespace NINA.Sequencer.SequenceItem.Connect {
     [ExportMetadata("Category", "Lbl_SequenceCategory_Connect")]
     [Export(typeof(ISequenceItem))]
     [JsonObject(MemberSerialization.OptIn)]
+    [Connector]
     public class ConnectAllEquipment : SequenceItem, IValidatable {
         private IProfileService profileService;
         private ICameraMediator cameraMediator;

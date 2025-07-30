@@ -102,10 +102,10 @@ namespace NINA.Sequencer.SequenceItem.Autofocus {
 
         public bool Validate() {
             var i = new List<string>();
-            if (!cameraMediator.GetInfo().Connected) {
+            if ((!cameraMediator.GetInfo().Connected) && (!HasConnector(Loc.Instance["LblCamera"]))) {
                 i.Add(Loc.Instance["LblCameraNotConnected"]);
             }
-            if (!focuserMediator.GetInfo().Connected) {
+            if ((!focuserMediator.GetInfo().Connected) && (!HasConnector(Loc.Instance["LblFocuser"]))) {
                 i.Add(Loc.Instance["LblFocuserNotConnected"]);
             }
 
